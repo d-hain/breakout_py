@@ -92,6 +92,24 @@ def force_player_boundaries(player: PlayerPaddle, surface: pygame.Surface) -> No
         player.rect.x = window_width - player.rect.w
 
 
+def ball_wall_collisions(ball: Ball, surface: pygame.Surface) -> None:
+    """
+    Wall collisions of the Ball
+    :param ball: The Ball to check collisions on
+    :param surface: The pygame.Surface of the window
+    """
+
+    window_width = surface.get_width()
+
+    # Left & Right border
+    if (ball.position.x - ball.radius) <= 0.0 or (ball.position.x + ball.radius) >= window_width:
+        ball.speed.x = -ball.speed.x
+
+    # Right border
+    if (ball.position.y - ball.radius) <= 0.0:
+        ball.speed.y = -ball.speed.y
+
+
 def draw(screen: pygame.Surface, game_state: GameState) -> None:
     """
     Draw everything in the game
@@ -132,6 +150,7 @@ def update(screen: pygame.Surface, game_state: GameState) -> None:
         game_state.ball.position.y -= game_state.ball.speed.y
 
         force_player_boundaries(game_state.player, screen)
+        ball_wall_collisions(game_state.ball, screen)
 
         # draw game
         draw(screen, game_state)
