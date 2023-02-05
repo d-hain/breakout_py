@@ -4,6 +4,7 @@ import sys
 from Direction import Direction
 from GameState import GameState
 from PlayerPaddle import PlayerPaddle
+from typing import Optional
 
 #     speed = [2, 2]
 #
@@ -49,16 +50,30 @@ def setup() -> tuple[pygame.Surface, GameState]:
     return screen, game_state
 
 
+def direction_from_key(key: int) -> Optional[Direction]:
+    match key:
+        case pygame.K_a:
+            return Direction.Left
+        case pygame.K_LEFT:
+            return Direction.Left
+        case pygame.K_d:
+            return Direction.Right
+        case pygame.K_RIGHT:
+            return Direction.Right
+    return None
+
+
 def update(screen: pygame.Surface, game_state: GameState) -> None:
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    game_state.player.direction = Direction.Left
-                if event.key == pygame.K_RIGHT:
-                    game_state.player.direction = Direction.Right
+                game_state.player.direction = direction_from_key(event.key)
+            # if event.key == pygame.K_LEFT:
+            #     game_state.player.direction = Direction.Left
+            # if event.key == pygame.K_RIGHT:
+            #     game_state.player.direction = Direction.Right
         game_state.delta_time = game_state.clock.tick(TARGET_UPS)
         screen.fill(BACKGROUND_COLOR)
 

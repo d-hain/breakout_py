@@ -1,4 +1,5 @@
 import pygame.time
+from typing import Optional
 
 from PlayerPaddle import PlayerPaddle
 
@@ -6,7 +7,7 @@ from PlayerPaddle import PlayerPaddle
 class GameState:
     clock: pygame.time.Clock
     delta_time: int
-    text_font: pygame.font.Font | None
+    text_font: Optional[pygame.font.Font]
     player: PlayerPaddle
 
     def __init__(self, player: PlayerPaddle) -> None:

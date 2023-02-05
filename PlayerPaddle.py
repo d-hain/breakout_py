@@ -1,4 +1,5 @@
 import pygame
+from typing import Optional
 
 from Direction import Direction
 
@@ -6,7 +7,7 @@ from Direction import Direction
 class PlayerPaddle:
     rect: pygame.Rect
     speed: float
-    direction: Direction | None
+    direction: Optional[Direction]
     color: pygame.Color
 
     def __init__(self, rect: pygame.Rect, speed: float, color: pygame.Color) -> None:
