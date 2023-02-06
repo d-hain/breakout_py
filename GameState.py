@@ -8,6 +8,7 @@ from PlayerPaddle import PlayerPaddle
 class GameState:
     clock: pygame.time.Clock
     delta_time: int
+    has_won: Optional[bool]
     text_font: Optional[pygame.font.Font]
     player: PlayerPaddle
     ball: Ball
@@ -15,6 +16,7 @@ class GameState:
     def __init__(self, player: PlayerPaddle, ball: Ball) -> None:
         self.clock = pygame.time.Clock()
         self.delta_time = 0
+        self.has_won = None
         self.text_font = None
         self.player = player
         self.ball = ball
