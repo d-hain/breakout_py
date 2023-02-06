@@ -42,7 +42,7 @@ def setup() -> tuple[pygame.Surface, GameState]:
 
     game_state = GameState(PlayerPaddle(
         pygame.rect.Rect(player_pos_x, player_pos_y, player_width, player_height),
-        6.5,
+        7.5,
         pygame.color.Color((255, 255, 50))),
         Ball(
             pygame.math.Vector2(width / 2.0, height / 2.0),
@@ -110,6 +110,18 @@ def ball_wall_collisions(ball: Ball, surface: pygame.Surface) -> None:
         ball.speed.y = -ball.speed.y
 
 
+def ball_paddle_collisions(ball: Ball, paddle: PlayerPaddle) -> None:
+    """
+    Collisions of the Ball with the PlayerPaddle
+    :param ball: The Ball to check collisions against
+    :param paddle: The PlayerPaddle to check collisions on
+    """
+
+    if paddle.rect.colliderect(pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius)):
+        ball.position.y -= 5
+        ball.speed.y = -ball.speed.y
+
+
 def draw(screen: pygame.Surface, game_state: GameState) -> None:
     """
     Draw everything in the game
@@ -151,6 +163,7 @@ def update(screen: pygame.Surface, game_state: GameState) -> None:
 
         force_player_boundaries(game_state.player, screen)
         ball_wall_collisions(game_state.ball, screen)
+        ball_paddle_collisions(game_state.ball, game_state.player)
 
         # draw game
         draw(screen, game_state)
