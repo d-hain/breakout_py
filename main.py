@@ -53,7 +53,7 @@ def setup() -> tuple[pygame.Surface, GameState]:
     )
 
     # setup font
-    # game_state.text_font = pygame.font.Font()
+    game_state.text_font = pygame.font.SysFont("Arial", 26)
 
     return screen, game_state
 
@@ -74,11 +74,11 @@ def direction_from_keys(keys: Sequence[bool]) -> Optional[Direction]:
     return None
 
 
-def force_player_boundaries(player: PlayerPaddle, surface: pygame.Surface) -> None:
+def force_player_boundaries(player: PlayerPaddle, screen: pygame.Surface) -> None:
     """
     Keep player on the screen
     :param player: The player paddle
-    :param surface: The pygame.Surface of the window
+    :param screen: The pygame.Surface of the window
     """
 
     # Left Border
@@ -87,19 +87,19 @@ def force_player_boundaries(player: PlayerPaddle, surface: pygame.Surface) -> No
         return
 
     # Right Border
-    window_width = surface.get_width()
+    window_width = screen.get_width()
     if (player.rect.x + player.rect.w) >= window_width:
         player.rect.x = window_width - player.rect.w
 
 
-def ball_wall_collisions(ball: Ball, surface: pygame.Surface) -> None:
+def ball_wall_collisions(ball: Ball, screen: pygame.Surface) -> None:
     """
     Wall collisions of the Ball
     :param ball: The Ball to check collisions on
-    :param surface: The pygame.Surface of the window
+    :param screen: The pygame.Surface of the window
     """
 
-    window_width = surface.get_width()
+    window_width = screen.get_width()
 
     # Left & Right border
     if (ball.position.x - ball.radius) <= 0.0 or (ball.position.x + ball.radius) >= window_width:
@@ -118,16 +118,31 @@ def ball_paddle_collisions(ball: Ball, paddle: PlayerPaddle) -> None:
     """
 
     if paddle.rect.colliderect(pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius)):
-        ball.position.y -= 5
+        ball.position.y -= ball.radius / 2
         ball.speed.y = -ball.speed.y
 
 
-def draw(screen: pygame.Surface, game_state: GameState) -> None:
+def draw_fps(fps: float, game_state: GameState, screen: pygame.Surface) -> None:
+    """
+    Draw the games fps in the top left corner
+    :param fps: Frames per Second
+    :param game_state: The games current GameState
+    :param screen: The pygame.Surface of the window
+    """
+
+    fps_text_rect = game_state.text_font.render(str(fps), True, FPS_TEXT_COLOR)
+    screen.blit(fps_text_rect, (0, 0))
+
+
+def draw(game_state: GameState, screen: pygame.Surface) -> None:
     """
     Draw everything in the game
     :param screen: The pygame.Surface of the window
     :param game_state: The current GameState
     """
+
+    # draw fps
+    draw_fps("{:.2f}".format(1000/game_state.delta_time), game_state, screen)
 
     # draw player
     game_state.player.draw(screen)
@@ -136,41 +151,43 @@ def draw(screen: pygame.Surface, game_state: GameState) -> None:
     game_state.ball.draw(screen)
 
 
-def update(screen: pygame.Surface, game_state: GameState) -> None:
+def update(game_state: GameState, screen: pygame.Surface) -> None:
     """
     Update everything in the game
     :param screen: The pygame.Surface of the window
     :param game_state: The current GameState
     """
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
-        game_state.delta_time = game_state.clock.tick(TARGET_UPS)
-        screen.fill(BACKGROUND_COLOR)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+    screen.fill(BACKGROUND_COLOR)
 
-        # change player direction from pressed keys
-        pressed_keys = pygame.key.get_pressed()
-        game_state.player.direction = direction_from_keys(pressed_keys)
+    # change player direction from pressed keys
+    pressed_keys = pygame.key.get_pressed()
+    game_state.player.direction = direction_from_keys(pressed_keys)
 
-        # move player
-        game_state.player.move()
+    # move player
+    game_state.player.move()
 
-        # move ball # TODO: TEMP
-        game_state.ball.position.x += game_state.ball.speed.x
-        game_state.ball.position.y -= game_state.ball.speed.y
+    # move ball # TODO: TEMP
+    game_state.ball.position.x += game_state.ball.speed.x
+    game_state.ball.position.y -= game_state.ball.speed.y
 
-        force_player_boundaries(game_state.player, screen)
-        ball_wall_collisions(game_state.ball, screen)
-        ball_paddle_collisions(game_state.ball, game_state.player)
+    force_player_boundaries(game_state.player, screen)
+    ball_wall_collisions(game_state.ball, screen)
+    ball_paddle_collisions(game_state.ball, game_state.player)
 
-        # draw game
-        draw(screen, game_state)
+    # draw game
+    draw(game_state, screen)
 
-        pygame.display.update()
+    pygame.display.update()
 
 
 if __name__ == "__main__":
     screen, game_state = setup()
-    update(screen, game_state)
+
+    # Game loop
+    while True:
+        game_state.delta_time = game_state.clock.tick(TARGET_UPS)
+        update(game_state, screen)
