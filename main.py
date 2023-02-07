@@ -1,4 +1,5 @@
 import math
+import random
 
 import pygame
 import sys
@@ -29,7 +30,7 @@ BACKGROUND_COLOR = (126, 72, 189)
 BLOCK_COLOR = (52, 235, 88)
 BALL_COLOR = (255, 255, 50),
 FPS_TEXT_COLOR = (255, 255, 1)
-LOSE_TEXT_COLOR = (184, 10, 13)
+WIN_OR_LOSE_TEXT_COLOR = (184, 10, 13)
 
 
 def direction_from_keys(keys: Sequence[bool]) -> Optional[Direction]:
@@ -84,7 +85,7 @@ def ball_wall_collisions(ball: Ball, screen: pygame.Surface) -> None:
         ball.speed.y = -ball.speed.y
 
 
-def ball_block_collisions(ball: Ball, block_rects: dict[int, pygame.rect.Rect], blocks: list[int]):
+def ball_block_collisions(ball: Ball, block_rects: dict[int, pygame.rect.Rect], blocks: list[int]) -> None:
     """
     Collisions of the Ball with the blocks
     :param ball: The Ball to check collisions on
@@ -111,6 +112,14 @@ def ball_paddle_collisions(ball: Ball, paddle: PlayerPaddle) -> None:
     if paddle.rect.colliderect(pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius)):
         ball.position.y -= ball.radius / 2
         ball.speed.y = -ball.speed.y
+
+
+def check_game_win(blocks: list[int]) -> bool:
+    """
+    :return: if all blocks have been destroyed
+    """
+
+    return len(blocks) == 0
 
 
 def check_game_lose(ball: Ball, window_height: float) -> bool:
@@ -166,35 +175,46 @@ def draw_ups(ups: float, game_state: GameState, screen: pygame.Surface) -> None:
     screen.blit(fps_text_surface, (0, 0))
 
 
-def draw_lose(screen: pygame.Surface) -> None:
+def draw_win_or_lose(text: str, screen: pygame.Surface) -> None:
     """
     Draws the Losing and Restarting Text with a rectangle behind it
+    :param text: Text to display (win or lose)
     :param screen: The pygame.Surface of the window
     """
 
-    # Lose Text
-    lose_text_surface = game_state.text_font.render("You Died!", True, LOSE_TEXT_COLOR)
-    lose_text_rect = lose_text_surface.get_rect()
+    # Win or Lose Text
+    text_surface = game_state.text_font.render(text, True, WIN_OR_LOSE_TEXT_COLOR)
+    text_rect = text_surface.get_rect()
 
-    lose_center_x = (screen.get_width() / 2) - (lose_text_rect.width / 2)
-    lose_center_y = (screen.get_height() / 2) - (lose_text_rect.height / 2)
+    center_x = (screen.get_width() / 2) - (text_rect.width / 2)
+    center_y = (screen.get_height() / 2) - (text_rect.height / 2)
 
-    lose_text_rect.x = lose_center_x
-    lose_text_rect.y = lose_center_y
+    text_rect.x = center_x
+    text_rect.y = center_y
+
+    # Draw Win or Lose
+    pygame.draw.rect(screen, FPS_TEXT_COLOR, text_rect, )
+    screen.blit(text_surface, (center_x, center_y))
+
+    draw_restart(center_y, text_rect.height)
+
+
+def draw_restart(win_or_lose_y: float, win_or_lose_text_rect_height: int) -> None:
+    """
+    Draws the Restarting Text with a rectangle behind it
+    :param win_or_lose_y: The y-Coordinate of the win or lose text
+    :param win_or_lose_text_rect_height: The height of the win or lose pygame.rect.Rect
+    """
 
     # Restart Text
-    restart_text_surface = game_state.text_font.render("Press R to restart.", True, LOSE_TEXT_COLOR)
+    restart_text_surface = game_state.text_font.render("Press R to restart.", True, WIN_OR_LOSE_TEXT_COLOR)
     restart_text_rect = restart_text_surface.get_rect()
 
     restart_center_x = (screen.get_width() / 2) - (restart_text_rect.width / 2)
-    restart_center_y = lose_center_y + lose_text_rect.height
+    restart_center_y = win_or_lose_y + win_or_lose_text_rect_height
 
     restart_text_rect.x = restart_center_x
     restart_text_rect.y = restart_center_y
-
-    # Draw Lose
-    pygame.draw.rect(screen, FPS_TEXT_COLOR, lose_text_rect, )
-    screen.blit(lose_text_surface, (lose_center_x, lose_center_y))
 
     # Draw Restart
     pygame.draw.rect(screen, FPS_TEXT_COLOR, restart_text_rect, )
@@ -215,9 +235,9 @@ def draw(game_state: GameState, screen: pygame.Surface) -> None:
     game_state.ball.draw(screen)
 
     if game_state.has_won:
-        print("won")
+        draw_win_or_lose("#1 Victory Royale", screen)
     elif game_state.has_won is False:
-        draw_lose(screen)
+        draw_win_or_lose("You Died!", screen)
 
 
 # endregion
@@ -240,7 +260,7 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
     # move player
     game_state.player.move()
 
-    # move ball # TODO: TEMP
+    # move ball
     game_state.ball.position.x += game_state.ball.speed.x
     game_state.ball.position.y -= game_state.ball.speed.y
 
@@ -251,7 +271,9 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
 
     if check_game_lose(game_state.ball, screen.get_height()):
         game_state.has_won = False
-        # TODO: pause game when lost
+        # TODO: pause game when lost or won
+    elif check_game_win(game_state.blocks):
+        game_state.has_won = True
 
     # draw game
     draw(game_state, screen)
@@ -274,7 +296,14 @@ def setup() -> tuple[pygame.Surface, GameState]:
 
     # setup ball
     ball_position = pygame.math.Vector2(width / 2.0, height / 2.0)
-    ball_speed = pygame.math.Vector2(7.0, 7.0)
+
+    # randomize ball starting direction
+    ball_speed: Optional[pygame.math.Vector2] = None
+    random_direction = random.randrange(-1, 1)
+    if random_direction >= 0:
+        ball_speed = pygame.math.Vector2(7.0, 7.0)
+    else:
+        ball_speed = pygame.math.Vector2(-7.0, 7.0)
 
     # setup GameState
     game_state = GameState(PlayerPaddle(
