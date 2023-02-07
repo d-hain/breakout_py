@@ -1,5 +1,6 @@
 import math
 import random
+import time
 
 from typing import Optional, Sequence
 import sys
@@ -102,7 +103,8 @@ def ball_block_collisions(ball: Ball, block_rects: dict[int, pygame.rect.Rect], 
     """
 
     for block_id in block_rects:
-        if pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius).colliderect(block_rects[block_id]):
+        if pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius).colliderect(
+                block_rects[block_id]):
             # ball.position.y += ball.radius / 2
             ball.speed.y = -ball.speed.y
             blocks[block_id] = 0
@@ -130,7 +132,11 @@ def check_game_win(blocks: list[int]) -> bool:
     :return: if all blocks have been destroyed
     """
 
-    return len(blocks) == 0
+    for block in blocks:
+        if block == 1:
+            return False
+
+    return True
 
 
 def check_game_lose(ball: Ball, window_height: float) -> bool:
@@ -168,8 +174,9 @@ def draw_blocks(game_state: GameState, screen: pygame.Surface) -> None:
             block_y += block_height + margin_y
 
         block_x = (margin_x + block_width) * idx_in_line
-        if block == 1:   # only draw block if it exists
-            block_rect = pygame.draw.rect(screen, BLOCK_COLOR, pygame.rect.Rect(block_x, block_y, block_width, block_height))
+        if block == 1:  # only draw block if it exists
+            block_rect = pygame.draw.rect(screen, BLOCK_COLOR,
+                                          pygame.rect.Rect(block_x, block_y, block_width, block_height))
             game_state.block_rects[idx] = block_rect
         idx_in_line += 1
 
@@ -211,7 +218,8 @@ def draw_win_or_lose(text: str, game_state: GameState, screen: pygame.Surface) -
     draw_restart(center_y, text_rect.height, game_state, screen)
 
 
-def draw_restart(win_or_lose_y: float, win_or_lose_text_rect_height: int, game_state: GameState, screen: pygame.Surface) -> None:
+def draw_restart(win_or_lose_y: float, win_or_lose_text_rect_height: int, game_state: GameState,
+                 screen: pygame.Surface) -> None:
     """
     Draws the Restarting Text with a rectangle behind it
     :param win_or_lose_y: The y-Coordinate of the win or lose text
@@ -242,6 +250,8 @@ def draw(game_state: GameState, screen: pygame.Surface) -> None:
     :param game_state: The current GameState
     """
 
+    screen.fill(BACKGROUND_COLOR)
+
     draw_ups("{:.2f}".format(1000 / game_state.delta_time), game_state, screen)
 
     draw_blocks(game_state, screen)
@@ -252,6 +262,8 @@ def draw(game_state: GameState, screen: pygame.Surface) -> None:
         draw_win_or_lose("#1 Victory Royale", game_state, screen)
     elif game_state.has_won is False:
         draw_win_or_lose("You Died!", game_state, screen)
+
+    pygame.display.update()
 
 
 # endregion
@@ -265,7 +277,6 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
     """
 
     game_state.delta_time = game_state.clock.tick(TARGET_UPS)
-    screen.fill(BACKGROUND_COLOR)
 
     # change player direction from pressed keys
     pressed_keys = pygame.key.get_pressed()
@@ -285,14 +296,11 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
 
     if check_game_lose(game_state.ball, screen.get_height()):
         game_state.has_won = False
-        # TODO: pause game when lost or won
     elif check_game_win(game_state.blocks):
         game_state.has_won = True
 
     # draw game
     draw(game_state, screen)
-
-    pygame.display.update()
 
 
 def setup() -> tuple[pygame.Surface, GameState]:
@@ -335,7 +343,7 @@ def setup() -> tuple[pygame.Surface, GameState]:
             ball_speed,
             pygame.color.Color(BALL_COLOR),
         ),
-        [1 for _idx in range(0, 21)],  # Blocks
+        [1 for _idx in range(0, 2)],  # Blocks
     )
 
     # setup font
@@ -353,6 +361,15 @@ def main() -> None:
             if event.type == pygame.QUIT:
                 sys.exit()
         update(game_state, screen)
+
+        # restart game
+        if game_state.has_won is not None:
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        sys.exit()
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                        main()
 
 
 if __name__ == "__main__":
