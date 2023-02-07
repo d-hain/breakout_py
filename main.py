@@ -84,6 +84,23 @@ def ball_wall_collisions(ball: Ball, screen: pygame.Surface) -> None:
         ball.speed.y = -ball.speed.y
 
 
+def ball_block_collisions(ball: Ball, block_rects: dict[int, pygame.rect.Rect], blocks: list[int]):
+    """
+    Collisions of the Ball with the blocks
+    :param ball: The Ball to check collisions on
+    :param block_rects: The block pygame.rect.Rect dictionary
+    :param blocks: The blocks "status"
+    """
+
+    for block_id in block_rects:
+        if pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius).colliderect(block_rects[block_id]):
+            # ball.position.y += ball.radius / 2
+            ball.speed.y = -ball.speed.y
+            blocks[block_id] = 0
+            block_rects.pop(block_id)
+            break
+
+
 def ball_paddle_collisions(ball: Ball, paddle: PlayerPaddle) -> None:
     """
     Collisions of the Ball with the PlayerPaddle
@@ -229,6 +246,7 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
 
     force_player_boundaries(game_state.player, screen)
     ball_wall_collisions(game_state.ball, screen)
+    ball_block_collisions(game_state.ball, game_state.block_rects, game_state.blocks)
     ball_paddle_collisions(game_state.ball, game_state.player)
 
     if check_game_lose(game_state.ball, screen.get_height()):
@@ -261,7 +279,7 @@ def setup() -> tuple[pygame.Surface, GameState]:
     # setup GameState
     game_state = GameState(PlayerPaddle(
         pygame.rect.Rect(player_pos_x, player_pos_y, player_width, player_height),
-        7.5,
+        9.0,
         pygame.color.Color((255, 255, 50))),
         Ball(
             ball_position,
@@ -287,4 +305,3 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT:
                 sys.exit()
         update(game_state, screen)
-        print(game_state.block_rects)
