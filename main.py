@@ -1,14 +1,14 @@
 import math
 import random
 
-import pygame
+from typing import Optional, Sequence
 import sys
+import pygame
 
 from Ball import Ball
 from Direction import Direction
 from GameState import GameState
 from PlayerPaddle import PlayerPaddle
-from typing import Optional, Sequence
 
 #     speed = [2, 2]
 #
@@ -28,22 +28,27 @@ TARGET_UPS = 60
 WINDOW_TITLE = "breakout_py"
 BACKGROUND_COLOR = (126, 72, 189)
 BLOCK_COLOR = (52, 235, 88)
-BALL_COLOR = (255, 255, 50),
+BALL_COLOR = (255, 255, 50)
 FPS_TEXT_COLOR = (255, 255, 1)
 WIN_OR_LOSE_TEXT_COLOR = (184, 10, 13)
 
 
 def direction_from_keys(keys: Sequence[bool]) -> Optional[Direction]:
+    """
+    :param keys: pressed keys (pygame.key.get_pressed())
+    :return: Direction from a pygame Keycode
+    """
+
     # Left
     if keys[pygame.K_a]:
         return Direction.Left
-    elif keys[pygame.K_LEFT]:
+    if keys[pygame.K_LEFT]:
         return Direction.Left
 
     # Right
     if keys[pygame.K_d]:
         return Direction.Right
-    elif keys[pygame.K_RIGHT]:
+    if keys[pygame.K_RIGHT]:
         return Direction.Right
 
     return None
@@ -65,6 +70,9 @@ def force_player_boundaries(player: PlayerPaddle, screen: pygame.Surface) -> Non
     window_width = screen.get_width()
     if (player.rect.x + player.rect.w) >= window_width:
         player.rect.x = window_width - player.rect.w
+
+
+# region Ball Collisions
 
 
 def ball_wall_collisions(ball: Ball, screen: pygame.Surface) -> None:
@@ -112,6 +120,9 @@ def ball_paddle_collisions(ball: Ball, paddle: PlayerPaddle) -> None:
     if paddle.rect.colliderect(pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius)):
         ball.position.y -= ball.radius / 2
         ball.speed.y = -ball.speed.y
+
+
+# endregion
 
 
 def check_game_win(blocks: list[int]) -> bool:
@@ -175,10 +186,11 @@ def draw_ups(ups: float, game_state: GameState, screen: pygame.Surface) -> None:
     screen.blit(fps_text_surface, (0, 0))
 
 
-def draw_win_or_lose(text: str, screen: pygame.Surface) -> None:
+def draw_win_or_lose(text: str, game_state: GameState, screen: pygame.Surface) -> None:
     """
     Draws the Losing and Restarting Text with a rectangle behind it
     :param text: Text to display (win or lose)
+    :param game_state: The current GameState
     :param screen: The pygame.Surface of the window
     """
 
@@ -196,14 +208,16 @@ def draw_win_or_lose(text: str, screen: pygame.Surface) -> None:
     pygame.draw.rect(screen, FPS_TEXT_COLOR, text_rect, )
     screen.blit(text_surface, (center_x, center_y))
 
-    draw_restart(center_y, text_rect.height)
+    draw_restart(center_y, text_rect.height, game_state, screen)
 
 
-def draw_restart(win_or_lose_y: float, win_or_lose_text_rect_height: int) -> None:
+def draw_restart(win_or_lose_y: float, win_or_lose_text_rect_height: int, game_state: GameState, screen: pygame.Surface) -> None:
     """
     Draws the Restarting Text with a rectangle behind it
     :param win_or_lose_y: The y-Coordinate of the win or lose text
     :param win_or_lose_text_rect_height: The height of the win or lose pygame.rect.Rect
+    :param game_state: The current GameState
+    :param screen: The pygame.Surface of the window
     """
 
     # Restart Text
@@ -235,9 +249,9 @@ def draw(game_state: GameState, screen: pygame.Surface) -> None:
     game_state.ball.draw(screen)
 
     if game_state.has_won:
-        draw_win_or_lose("#1 Victory Royale", screen)
+        draw_win_or_lose("#1 Victory Royale", game_state, screen)
     elif game_state.has_won is False:
-        draw_win_or_lose("You Died!", screen)
+        draw_win_or_lose("You Died!", game_state, screen)
 
 
 # endregion
@@ -282,6 +296,11 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
 
 
 def setup() -> tuple[pygame.Surface, GameState]:
+    """
+    Set up the game
+    :return: a tuple of the screen pygame.Surface and the GameState
+    """
+
     pygame.init()
 
     window_size = width, height = 669, 420
@@ -301,9 +320,9 @@ def setup() -> tuple[pygame.Surface, GameState]:
     ball_speed: Optional[pygame.math.Vector2] = None
     random_direction = random.randrange(-1, 1)
     if random_direction >= 0:
-        ball_speed = pygame.math.Vector2(7.0, 7.0)
+        ball_speed = pygame.math.Vector2(5.0, 5.0)
     else:
-        ball_speed = pygame.math.Vector2(-7.0, 7.0)
+        ball_speed = pygame.math.Vector2(-5.0, 5.0)
 
     # setup GameState
     game_state = GameState(PlayerPaddle(
@@ -325,7 +344,7 @@ def setup() -> tuple[pygame.Surface, GameState]:
     return screen, game_state
 
 
-if __name__ == "__main__":
+def main() -> None:
     screen, game_state = setup()
 
     # Game loop
@@ -334,3 +353,7 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT:
                 sys.exit()
         update(game_state, screen)
+
+
+if __name__ == "__main__":
+    main()
