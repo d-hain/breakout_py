@@ -1,3 +1,5 @@
+import math
+
 import pygame
 import sys
 
@@ -24,39 +26,10 @@ from typing import Optional, Sequence
 TARGET_UPS = 60
 WINDOW_TITLE = "breakout_py"
 BACKGROUND_COLOR = (126, 72, 189)
+BLOCK_COLOR = (52, 235, 88)
+BALL_COLOR = (255, 255, 50),
 FPS_TEXT_COLOR = (255, 255, 1)
 LOSE_TEXT_COLOR = (184, 10, 13)
-
-
-def setup() -> tuple[pygame.Surface, GameState]:
-    pygame.init()
-
-    window_size = width, height = 669, 442
-    screen: pygame.Surface = pygame.display.set_mode(window_size)
-    pygame.display.set_caption(WINDOW_TITLE)
-
-    # setup player
-    player_width = width / 8
-    player_height = height / 18
-    player_pos_x = (width / 2) - (player_width / 2)
-    player_pos_y = height - (height / 10)
-
-    game_state = GameState(PlayerPaddle(
-        pygame.rect.Rect(player_pos_x, player_pos_y, player_width, player_height),
-        7.5,
-        pygame.color.Color((255, 255, 50))),
-        Ball(
-            pygame.math.Vector2(width / 2.0, height / 2.0),
-            20.0,
-            pygame.math.Vector2(7.0, 7.0),
-            pygame.color.Color((255, 255, 50)),
-        ),
-    )
-
-    # setup font
-    game_state.text_font = pygame.font.SysFont("Arial", 24)
-
-    return screen, game_state
 
 
 def direction_from_keys(keys: Sequence[bool]) -> Optional[Direction]:
@@ -131,6 +104,39 @@ def check_game_lose(ball: Ball, window_height: float) -> bool:
     return (ball.position.y + ball.radius) >= window_height
 
 
+# region Draw
+
+
+def draw_blocks(game_state: GameState, screen: pygame.Surface) -> None:
+    """
+    Draws the blocks at the top of the screen
+    :param game_state: The games current GameState
+    :param screen: The pygame.Surface of the window
+    """
+
+    window_width = screen.get_width()
+    window_height = screen.get_height()
+
+    margin_x = window_width / 20
+    margin_y = window_height / 20
+    block_width = window_width / 10
+    block_height = window_height / 20
+    blocks_per_line = math.floor(window_width / block_width) - 3
+
+    block_y = margin_y
+    idx_in_line = 0
+    for idx, block in enumerate(game_state.blocks):
+        if idx % blocks_per_line == 0 and idx != 0:
+            idx_in_line = 0
+            block_y += block_height + margin_y
+
+        block_x = (margin_x + block_width) * idx_in_line
+        if block == 1:   # only draw block if it exists
+            block_rect = pygame.draw.rect(screen, BLOCK_COLOR, pygame.rect.Rect(block_x, block_y, block_width, block_height))
+            game_state.block_rects[idx] = block_rect
+        idx_in_line += 1
+
+
 def draw_ups(ups: float, game_state: GameState, screen: pygame.Surface) -> None:
     """
     Draw the games ups in the top left corner
@@ -187,6 +193,7 @@ def draw(game_state: GameState, screen: pygame.Surface) -> None:
 
     draw_ups("{:.2f}".format(1000 / game_state.delta_time), game_state, screen)
 
+    draw_blocks(game_state, screen)
     game_state.player.draw(screen)
     game_state.ball.draw(screen)
 
@@ -196,6 +203,9 @@ def draw(game_state: GameState, screen: pygame.Surface) -> None:
         draw_lose(screen)
 
 
+# endregion
+
+
 def update(game_state: GameState, screen: pygame.Surface) -> None:
     """
     Update everything in the game
@@ -203,9 +213,7 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
     :param game_state: The current GameState
     """
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
+    game_state.delta_time = game_state.clock.tick(TARGET_UPS)
     screen.fill(BACKGROUND_COLOR)
 
     # change player direction from pressed keys
@@ -233,10 +241,50 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
     pygame.display.update()
 
 
+def setup() -> tuple[pygame.Surface, GameState]:
+    pygame.init()
+
+    window_size = width, height = 669, 420
+    screen: pygame.Surface = pygame.display.set_mode(window_size)
+    pygame.display.set_caption(WINDOW_TITLE)
+
+    # setup player
+    player_width = width / 8
+    player_height = height / 18
+    player_pos_x = (width / 2) - (player_width / 2)
+    player_pos_y = height - (height / 10)
+
+    # setup ball
+    ball_position = pygame.math.Vector2(width / 2.0, height / 2.0)
+    ball_speed = pygame.math.Vector2(7.0, 7.0)
+
+    # setup GameState
+    game_state = GameState(PlayerPaddle(
+        pygame.rect.Rect(player_pos_x, player_pos_y, player_width, player_height),
+        7.5,
+        pygame.color.Color((255, 255, 50))),
+        Ball(
+            ball_position,
+            20.0,
+            ball_speed,
+            pygame.color.Color(BALL_COLOR),
+        ),
+        [1 for _idx in range(0, 21)],  # Blocks
+    )
+
+    # setup font
+    game_state.text_font = pygame.font.SysFont("Arial", 24)
+
+    return screen, game_state
+
+
 if __name__ == "__main__":
     screen, game_state = setup()
 
     # Game loop
     while True:
-        game_state.delta_time = game_state.clock.tick(TARGET_UPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
         update(game_state, screen)
+        print(game_state.block_rects)
