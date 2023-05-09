@@ -1,6 +1,5 @@
 import math
 import random
-import time
 
 from typing import Optional, Sequence
 import sys
@@ -36,6 +35,7 @@ WIN_OR_LOSE_TEXT_COLOR = (184, 10, 13)
 
 def direction_from_keys(keys: Sequence[bool]) -> Optional[Direction]:
     """
+    Returns an optional direction from the currently pressed keys.
     :param keys: pressed keys (pygame.key.get_pressed())
     :return: Direction from a pygame Keycode
     """
@@ -119,8 +119,17 @@ def ball_paddle_collisions(ball: Ball, paddle: PlayerPaddle) -> None:
     :param paddle: The PlayerPaddle to check collisions on
     """
 
+    # Collides with paddle
     if paddle.rect.colliderect(pygame.rect.Rect(ball.position.x, ball.position.y, ball.radius, ball.radius)):
         ball.position.y -= ball.radius / 2
+
+        if paddle.direction is not None:
+            # FIXME: Here something does not work with the direction
+            if paddle.direction.Right:
+                ball.speed.x = abs(ball.speed.x)
+            if paddle.direction.Left:
+                ball.speed.x = -abs(ball.speed.x)
+
         ball.speed.y = -ball.speed.y
 
 
@@ -218,8 +227,12 @@ def draw_win_or_lose(text: str, game_state: GameState, screen: pygame.Surface) -
     draw_restart(center_y, text_rect.height, game_state, screen)
 
 
-def draw_restart(win_or_lose_y: float, win_or_lose_text_rect_height: int, game_state: GameState,
-                 screen: pygame.Surface) -> None:
+def draw_restart(
+        win_or_lose_y: float,
+        win_or_lose_text_rect_height: int,
+        game_state: GameState,
+        screen: pygame.Surface
+) -> None:
     """
     Draws the Restarting Text with a rectangle behind it
     :param win_or_lose_y: The y-Coordinate of the win or lose text
@@ -282,17 +295,17 @@ def update(game_state: GameState, screen: pygame.Surface) -> None:
     pressed_keys = pygame.key.get_pressed()
     game_state.player.direction = direction_from_keys(pressed_keys)
 
+    force_player_boundaries(game_state.player, screen)
+    ball_wall_collisions(game_state.ball, screen)
+    ball_block_collisions(game_state.ball, game_state.block_rects, game_state.blocks)
+    ball_paddle_collisions(game_state.ball, game_state.player)
+
     # move player
     game_state.player.move()
 
     # move ball
     game_state.ball.position.x += game_state.ball.speed.x
     game_state.ball.position.y -= game_state.ball.speed.y
-
-    force_player_boundaries(game_state.player, screen)
-    ball_wall_collisions(game_state.ball, screen)
-    ball_block_collisions(game_state.ball, game_state.block_rects, game_state.blocks)
-    ball_paddle_collisions(game_state.ball, game_state.player)
 
     if check_game_lose(game_state.ball, screen.get_height()):
         game_state.has_won = False
@@ -343,7 +356,7 @@ def setup() -> tuple[pygame.Surface, GameState]:
             ball_speed,
             pygame.color.Color(BALL_COLOR),
         ),
-        [1 for _idx in range(0, 2)],  # Blocks
+        [1 for _idx in range(0, 21)],  # Blocks
     )
 
     # setup font
